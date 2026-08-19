@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Check, X, Eye, Trophy, Clock, LogOut, Loader2, Flame, ExternalLink, Search, Settings, Mail, Copy } from 'lucide-react';
+import { Check, X, Eye, Trophy, Clock, LogOut, Loader2, Flame, ExternalLink, Search, Settings, Mail, Copy, Lock } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -18,6 +18,7 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Settings State
+  const [isEditingSchedule, setIsEditingSchedule] = useState(false);
   const [settings, setSettings] = useState<any>({
     registration_start: '',
     registration_end: '',
@@ -127,6 +128,7 @@ export default function AdminDashboard() {
       });
       if (error) throw error;
       toast.success("Pengaturan jadwal berhasil disimpan!", { id: loadingId });
+      setIsEditingSchedule(false);
     } catch(err) {
       toast.error("Gagal menyimpan jadwal.", { id: loadingId });
     }
@@ -292,7 +294,27 @@ export default function AdminDashboard() {
               <h2 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-wide mb-6 border-b border-zinc-800 pb-4">
                 <Settings size={24} className="text-orange-500" /> Jadwal Event
               </h2>
-              <form onSubmit={handleSaveSettings} className="space-y-6">
+              <form onSubmit={handleSaveSettings} className="space-y-6 relative">
+                
+                {/* OVERLAY TERKUNCI */}
+                {!isEditingSchedule && (
+                  <div className="absolute inset-0 z-10 bg-zinc-950/70 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center border border-zinc-800">
+                    <div className="bg-zinc-900 p-4 rounded-full mb-4 shadow-[0_0_30px_rgba(249,115,22,0.15)] border border-zinc-800">
+                      <Lock size={36} className="text-orange-500" />
+                    </div>
+                    <h3 className="text-white font-black text-xl uppercase tracking-widest mb-2">Jadwal Terkunci</h3>
+                    <p className="text-zinc-400 text-sm mb-6 text-center px-4 max-w-xs leading-relaxed">
+                      Jadwal event saat ini sedang aktif dan diamankan dari perubahan tidak sengaja.
+                    </p>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsEditingSchedule(true)}
+                      className="px-6 py-3 bg-zinc-800 hover:bg-orange-500 text-white font-bold rounded-xl transition-all flex items-center gap-2 uppercase tracking-widest text-sm border border-zinc-700 hover:border-orange-500 shadow-lg"
+                    >
+                      Buka Kunci & Edit
+                    </button>
+                  </div>
+                )}
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
@@ -300,15 +322,15 @@ export default function AdminDashboard() {
                     <div className="space-y-2">
                       <label className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Dibuka</label>
                       <div className="flex gap-2">
-                        <input type="date" required value={settings.registration_start.split('T')[0] || ''} onChange={e => setSettings({...settings, registration_start: `${e.target.value}T${settings.registration_start.split('T')[1] || '00:00'}`})} className="w-[60%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark]" />
-                        <input type="time" required value={settings.registration_start.split('T')[1] || '00:00'} onChange={e => setSettings({...settings, registration_start: `${settings.registration_start.split('T')[0] || new Date().toISOString().split('T')[0]}T${e.target.value}`})} className="w-[40%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark]" />
+                        <input type="date" disabled={!isEditingSchedule} required value={settings.registration_start.split('T')[0] || ''} onChange={e => setSettings({...settings, registration_start: `${e.target.value}T${settings.registration_start.split('T')[1] || '00:00'}`})} className="w-[60%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark] disabled:opacity-50" />
+                        <input type="time" disabled={!isEditingSchedule} required value={settings.registration_start.split('T')[1] || '00:00'} onChange={e => setSettings({...settings, registration_start: `${settings.registration_start.split('T')[0] || new Date().toISOString().split('T')[0]}T${e.target.value}`})} className="w-[40%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark] disabled:opacity-50" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Ditutup</label>
                       <div className="flex gap-2">
-                        <input type="date" required value={settings.registration_end.split('T')[0] || ''} onChange={e => setSettings({...settings, registration_end: `${e.target.value}T${settings.registration_end.split('T')[1] || '23:59'}`})} className="w-[60%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark]" />
-                        <input type="time" required value={settings.registration_end.split('T')[1] || '23:59'} onChange={e => setSettings({...settings, registration_end: `${settings.registration_end.split('T')[0] || new Date().toISOString().split('T')[0]}T${e.target.value}`})} className="w-[40%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark]" />
+                        <input type="date" disabled={!isEditingSchedule} required value={settings.registration_end.split('T')[0] || ''} onChange={e => setSettings({...settings, registration_end: `${e.target.value}T${settings.registration_end.split('T')[1] || '23:59'}`})} className="w-[60%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark] disabled:opacity-50" />
+                        <input type="time" disabled={!isEditingSchedule} required value={settings.registration_end.split('T')[1] || '23:59'} onChange={e => setSettings({...settings, registration_end: `${settings.registration_end.split('T')[0] || new Date().toISOString().split('T')[0]}T${e.target.value}`})} className="w-[40%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark] disabled:opacity-50" />
                       </div>
                     </div>
                   </div>
@@ -318,22 +340,27 @@ export default function AdminDashboard() {
                     <div className="space-y-2">
                       <label className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Mulai Submit</label>
                       <div className="flex gap-2">
-                        <input type="date" required value={settings.run_start.split('T')[0] || ''} onChange={e => setSettings({...settings, run_start: `${e.target.value}T${settings.run_start.split('T')[1] || '00:00'}`})} className="w-[60%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark]" />
-                        <input type="time" required value={settings.run_start.split('T')[1] || '00:00'} onChange={e => setSettings({...settings, run_start: `${settings.run_start.split('T')[0] || new Date().toISOString().split('T')[0]}T${e.target.value}`})} className="w-[40%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark]" />
+                        <input type="date" disabled={!isEditingSchedule} required value={settings.run_start.split('T')[0] || ''} onChange={e => setSettings({...settings, run_start: `${e.target.value}T${settings.run_start.split('T')[1] || '00:00'}`})} className="w-[60%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark] disabled:opacity-50" />
+                        <input type="time" disabled={!isEditingSchedule} required value={settings.run_start.split('T')[1] || '00:00'} onChange={e => setSettings({...settings, run_start: `${settings.run_start.split('T')[0] || new Date().toISOString().split('T')[0]}T${e.target.value}`})} className="w-[40%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark] disabled:opacity-50" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Tutup Submit</label>
                       <div className="flex gap-2">
-                        <input type="date" required value={settings.run_end.split('T')[0] || ''} onChange={e => setSettings({...settings, run_end: `${e.target.value}T${settings.run_end.split('T')[1] || '23:59'}`})} className="w-[60%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark]" />
-                        <input type="time" required value={settings.run_end.split('T')[1] || '23:59'} onChange={e => setSettings({...settings, run_end: `${settings.run_end.split('T')[0] || new Date().toISOString().split('T')[0]}T${e.target.value}`})} className="w-[40%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark]" />
+                        <input type="date" disabled={!isEditingSchedule} required value={settings.run_end.split('T')[0] || ''} onChange={e => setSettings({...settings, run_end: `${e.target.value}T${settings.run_end.split('T')[1] || '23:59'}`})} className="w-[60%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark] disabled:opacity-50" />
+                        <input type="time" disabled={!isEditingSchedule} required value={settings.run_end.split('T')[1] || '23:59'} onChange={e => setSettings({...settings, run_end: `${settings.run_end.split('T')[0] || new Date().toISOString().split('T')[0]}T${e.target.value}`})} className="w-[40%] bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white focus:border-orange-500 outline-none [color-scheme:dark] disabled:opacity-50" />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-zinc-800 flex justify-end">
-                  <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-wider py-3 px-8 rounded-xl flex items-center gap-2 transition shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+                <div className="pt-4 border-t border-zinc-800 flex justify-end gap-3">
+                  {isEditingSchedule && (
+                    <button type="button" onClick={() => setIsEditingSchedule(false)} className="px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-sm transition text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800">
+                      Batal
+                    </button>
+                  )}
+                  <button type="submit" disabled={!isEditingSchedule} className={`text-white font-black uppercase tracking-wider py-3 px-8 rounded-xl flex items-center gap-2 transition ${isEditingSchedule ? 'bg-orange-500 hover:bg-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-zinc-800 opacity-0 pointer-events-none'}`}>
                     Simpan Jadwal <Check size={18} />
                   </button>
                 </div>
