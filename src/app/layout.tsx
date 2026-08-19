@@ -30,6 +30,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex flex-col min-h-screen bg-zinc-950 text-white font-sans relative overflow-x-hidden">
+        
+        {/* SUBTLE GRID PATTERN WITH RADIAL GRADIENT MASK */}
+        <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+
         {/* GLOBAL SPORTY BACKGROUND ELEMENTS */}
         <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-orange-600 rounded-full mix-blend-screen filter blur-[120px] opacity-10 pointer-events-none z-0"></div>
         <div className="fixed bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-orange-500 rounded-full mix-blend-screen filter blur-[120px] opacity-7 pointer-events-none z-0"></div>
