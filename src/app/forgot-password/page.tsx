@@ -19,8 +19,10 @@ export default function ForgotPassword() {
   }, [router]);
   
   // State step 1 (Verifikasi)
-  const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [kategori, setKategori] = useState('Siswa');
+  const [classGroup, setClassGroup] = useState('');
   const [verifiedId, setVerifiedId] = useState<string | null>(null);
   
   // State step 2 (Reset)
@@ -41,16 +43,20 @@ export default function ForgotPassword() {
     setIsLoading(true);
     
     try {
+      const finalClassGroup = kategori === 'Siswa' ? classGroup : kategori;
+
       const { data, error } = await supabase
         .from('users')
-        .select('id')
+        .select('id, name')
         .eq('email', email)
+        .eq('class_group', finalClassGroup)
         .single();
         
-      if (error || !data) {
-        toast.error("Email tidak ditemukan di sistem!");
+      // Also check if name matches (case insensitive check)
+      if (error || !data || data.name.toLowerCase().trim() !== name.toLowerCase().trim()) {
+        toast.error("Data identitas tidak cocok atau tidak ditemukan!");
       } else {
-        toast.success("Data ditemukan! Silakan buat password baru.");
+        toast.success("Verifikasi berhasil! Silakan buat password baru.");
         setVerifiedId(data.id);
       }
     } catch (err) {
@@ -100,12 +106,12 @@ export default function ForgotPassword() {
             Lupa Password
           </h2>
           <p className="text-xs text-zinc-500 font-medium">
-            {!verifiedId ? "Masukkan NISN/NIP dan Email yang terdaftar untuk verifikasi keamanan." : "Silakan masukkan password baru Anda."}
+            {!verifiedId ? "Masukkan data diri yang sama persis saat mendaftar untuk keamanan." : "Silakan masukkan password baru Anda."}
           </p>
         </div>
 
         {!verifiedId ? (
-          <form className="space-y-5" onSubmit={handleVerify}>
+          <form className="space-y-4" onSubmit={handleVerify}>
             <div className="space-y-2">
               <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">Email Terdaftar</label>
               <input 
@@ -113,15 +119,54 @@ export default function ForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Cth: budi@gmail.com" 
-                className="w-full px-4 py-4 bg-zinc-950 rounded-xl border border-zinc-800 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none font-medium"
+                className="w-full px-4 py-3.5 bg-zinc-950 rounded-xl border border-zinc-800 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none font-medium text-sm"
                 required
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">Nama Lengkap</label>
+              <input 
+                type="text" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Harus persis sama" 
+                className="w-full px-4 py-3.5 bg-zinc-950 rounded-xl border border-zinc-800 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none font-medium text-sm"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">Kategori</label>
+              <select 
+                value={kategori}
+                onChange={(e) => setKategori(e.target.value)}
+                className="w-full px-4 py-3.5 bg-zinc-950 rounded-xl border border-zinc-800 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none font-medium text-sm cursor-pointer"
+              >
+                <option value="Siswa">Siswa SMADA</option>
+                <option value="Guru">Guru / Staf SMADA</option>
+                <option value="Umum">Umum</option>
+              </select>
+            </div>
+
+            {kategori === 'Siswa' && (
+              <div className="space-y-2">
+                <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">Kelas</label>
+                <input 
+                  type="text" 
+                  value={classGroup}
+                  onChange={(e) => setClassGroup(e.target.value)}
+                  placeholder="Cth: X MIPA 1" 
+                  className="w-full px-4 py-3.5 bg-zinc-950 rounded-xl border border-zinc-800 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none font-medium text-sm"
+                  required={kategori === 'Siswa'}
+                />
+              </div>
+            )}
+
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full bg-zinc-800 hover:bg-orange-500 text-white font-black uppercase tracking-wider py-4 rounded-xl flex justify-center items-center gap-2 transition-all border border-zinc-700 hover:border-orange-500 mt-4 disabled:opacity-50"
+              className="w-full bg-zinc-800 hover:bg-orange-500 text-white font-black uppercase tracking-wider py-4 rounded-xl flex justify-center items-center gap-2 transition-all border border-zinc-700 hover:border-orange-500 mt-2 disabled:opacity-50"
             >
               {isLoading ? <><Loader2 size={20} className="animate-spin" /> Memeriksa...</> : <>Verifikasi Data</>}
             </button>

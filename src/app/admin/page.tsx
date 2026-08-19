@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Check, X, Eye, Trophy, Clock, LogOut, Loader2, Flame, ExternalLink, Search, Settings, Mail, Copy, Lock } from 'lucide-react';
+import { Check, X, Eye, Trophy, Clock, LogOut, Loader2, Flame, ExternalLink, Search, Settings, Mail, Copy, Lock, Users, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -9,11 +9,12 @@ import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'verifikasi' | 'pengaturan' | 'email'>('verifikasi');
+  const [activeTab, setActiveTab] = useState<'verifikasi' | 'peserta' | 'pengaturan' | 'email'>('verifikasi');
   
   // Data State
   const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -114,6 +115,12 @@ export default function AdminDashboard() {
       if (emailsData) {
         setAllEmails(emailsData.map(u => u.email).filter(Boolean));
       }
+
+      // 5. Fetch Users List
+      const { data: usersData } = await supabase.from('users').select('*').neq('role', 'admin').order('created_at', { ascending: false });
+      if (usersData) {
+        setUsersList(usersData);
+      }
     } catch (err) {
       toast.error("Gagal memuat data dari server.");
     } finally {
@@ -162,6 +169,22 @@ export default function AdminDashboard() {
     toast.success("Semua email berhasil disalin ke Clipboard!");
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm("Yakin ingin menghapus peserta ini secara permanen? Semua laporan larinya juga akan hilang.")) return;
+    
+    const loadingId = toast.loading("Menghapus akun...");
+    try {
+      await supabase.from('submissions').delete().eq('user_id', userId);
+      const { error } = await supabase.from('users').delete().eq('id', userId);
+      if (error) throw error;
+      
+      toast.success("Peserta berhasil dihapus!", { id: loadingId });
+      fetchData();
+    } catch (err) {
+      toast.error("Gagal menghapus peserta.", { id: loadingId });
+    }
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     toast.success("Berhasil keluar.");
@@ -201,6 +224,9 @@ export default function AdminDashboard() {
         <div className="flex flex-wrap gap-2 md:gap-4 border-b border-zinc-800 pb-2">
           <button onClick={() => setActiveTab('verifikasi')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'verifikasi' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
             <Clock size={18} /> Verifikasi
+          </button>
+          <button onClick={() => setActiveTab('peserta')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'peserta' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
+            <Users size={18} /> Peserta
           </button>
           <button onClick={() => setActiveTab('pengaturan')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'pengaturan' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
             <Settings size={18} /> Jadwal Event
@@ -304,6 +330,74 @@ export default function AdminDashboard() {
                     <Check size={48} className="mb-4 text-zinc-700" />
                     <h3 className="text-lg font-black uppercase tracking-widest text-zinc-400">Kerja Bagus!</h3>
                     <p className="text-sm font-medium mt-1">Tidak ada antrean laporan baru saat ini.</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* TAB: PESERTA */}
+          {activeTab === 'peserta' && (
+            <>
+              <div className="flex justify-between items-end mb-2">
+                <h2 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+                  <Users size={28} className="text-orange-500" /> Daftar Peserta
+                </h2>
+                <span className="text-xs bg-orange-500 text-white font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-[0_0_15px_rgba(249,115,22,0.4)]">
+                  {usersList.length} Akun
+                </span>
+              </div>
+
+              <div className="relative mb-6">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search size={18} className="text-zinc-500" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Cari nama, email, atau kelas..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors shadow-inner font-medium text-sm"
+                />
+              </div>
+              
+              <div className="space-y-4">
+                {usersList
+                  .filter(user => {
+                    const q = searchQuery.toLowerCase();
+                    return user.name?.toLowerCase().includes(q) || user.email?.toLowerCase().includes(q) || user.class_group?.toLowerCase().includes(q);
+                  })
+                  .map((user) => {
+                  const dateObj = new Date(user.created_at);
+                  const timeStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                  
+                  return (
+                    <div key={user.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 hover:border-red-500/30 transition-all flex flex-col sm:flex-row gap-5 items-start sm:items-center justify-between group shadow-xl">
+                      <div className="flex gap-4 items-center w-full sm:w-auto overflow-hidden">
+                        <div className="w-12 h-12 bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-500 text-lg font-black border border-zinc-700 shadow-inner shrink-0 group-hover:text-red-500 transition-colors">
+                          {user.name?.charAt(0) || '?'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold text-white text-base leading-tight truncate">{user.name}</div>
+                          <div className="text-xs text-zinc-400 mt-1 truncate">{user.email}</div>
+                          <div className="text-[10px] text-zinc-500 font-bold mt-1 uppercase tracking-wider">{user.class_group} &bull; Bergabung {timeStr}</div>
+                        </div>
+                      </div>
+                      
+                      <button onClick={() => handleDeleteUser(user.id)} className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30 rounded-xl transition shadow-sm shrink-0 self-end sm:self-auto" title="Hapus Akun Permanen">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  )
+                })}
+
+                {searchQuery && usersList.filter(user => {
+                   const q = searchQuery.toLowerCase();
+                   return user.name?.toLowerCase().includes(q) || user.email?.toLowerCase().includes(q) || user.class_group?.toLowerCase().includes(q);
+                }).length === 0 && (
+                  <div className="text-center py-10 flex flex-col items-center justify-center">
+                    <Search size={48} className="text-zinc-700 mb-4" />
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500">Akun Tidak Ditemukan</h3>
                   </div>
                 )}
               </div>
