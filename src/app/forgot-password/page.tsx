@@ -44,12 +44,11 @@ export default function ForgotPassword() {
       const { data, error } = await supabase
         .from('users')
         .select('id')
-        .eq('identifier', identifier)
         .eq('email', email)
         .single();
         
       if (error || !data) {
-        toast.error("NISN atau Email tidak ditemukan di sistem!");
+        toast.error("Email tidak ditemukan di sistem!");
       } else {
         toast.success("Data ditemukan! Silakan buat password baru.");
         setVerifiedId(data.id);
@@ -107,17 +106,6 @@ export default function ForgotPassword() {
 
         {!verifiedId ? (
           <form className="space-y-5" onSubmit={handleVerify}>
-            <div className="space-y-2">
-              <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">NISN / NIP</label>
-              <input 
-                type="text" 
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="Masukkan NISN / NIP" 
-                className="w-full px-4 py-4 bg-zinc-950 rounded-xl border border-zinc-800 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none font-medium"
-                required
-              />
-            </div>
             <div className="space-y-2">
               <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">Email Terdaftar</label>
               <input 

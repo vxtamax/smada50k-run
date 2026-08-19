@@ -66,7 +66,7 @@ export default function Leaderboard() {
               rank: index + 1,
               ...u
             }))
-            .slice(0, 10); // Menampilkan Top 10
+            .slice(0, 100); // Menampilkan Top 100
 
           setLeaderboard(sorted);
         }
@@ -91,7 +91,7 @@ export default function Leaderboard() {
          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">
            KLASEMEN <span className="text-orange-500">SMADA50K</span>
          </h1>
-         <p className="text-zinc-500 font-bold uppercase tracking-widest mt-2 text-sm">Top 10 Pelari Terbaik</p>
+         <p className="text-zinc-500 font-bold uppercase tracking-widest mt-2 text-sm">Top 100 Pelari Terbaik</p>
       </div>
 
       <div className="bg-zinc-900/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-zinc-800 shadow-2xl relative overflow-hidden">

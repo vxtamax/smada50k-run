@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 
 export default function Login() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -41,12 +41,12 @@ export default function Login() {
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('identifier', identifier)
+        .eq('email', email)
         .eq('password', hashedPassword)
         .single();
         
       if (error || !data) {
-        toast.error("NISN atau Password salah!");
+        toast.error("Email atau Password salah!");
       } else {
         localStorage.setItem('smada_user_id', data.id);
         localStorage.setItem('smada_user_name', data.name);
@@ -89,12 +89,12 @@ export default function Login() {
 
         <form className="space-y-5" onSubmit={handleLogin}>
           <div className="space-y-2">
-            <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">NISN / NIP</label>
+            <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">Email (Aktif)</label>
             <input 
-              type="text" 
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="Masukkan NISN / NIP" 
+              type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Masukkan Email Anda" 
               className="w-full px-4 py-4 bg-zinc-950 rounded-xl border border-zinc-800 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none font-medium"
               required
             />

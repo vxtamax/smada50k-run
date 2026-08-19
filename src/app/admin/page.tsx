@@ -60,20 +60,42 @@ export default function AdminDashboard() {
       if (pendingData) setPendingSubmissions(pendingData);
 
       // 2. Fetch Leaderboard
-      const { data: approvedData } = await supabase.from('submissions').select(`distance_km, users ( id, name, class_group )`).eq('status', 'approved');
+      const { data: approvedData } = await supabase.from('submissions').select(`distance_km, pace_minutes, users ( id, name, class_group )`).eq('status', 'approved');
       if (approvedData) {
-        const userTotals: Record<string, {name: string, kelas: string, totalKm: number}> = {};
+        const userTotals: Record<string, {name: string, kelas: string, totalKm: number, totalPaceDecimal: number, sessionCount: number}> = {};
+        
         approvedData.forEach(sub => {
           const user = sub.users as any;
           if (!user) return;
-          if (!userTotals[user.id]) userTotals[user.id] = { name: user.name, kelas: user.class_group, totalKm: 0 };
+          if (!userTotals[user.id]) userTotals[user.id] = { name: user.name, kelas: user.class_group, totalKm: 0, totalPaceDecimal: 0, sessionCount: 0 };
           userTotals[user.id].totalKm += sub.distance_km;
+          
+          if (sub.pace_minutes) {
+            const [mins, secs] = sub.pace_minutes.split(':').map(Number);
+            const decimalPace = mins + (secs || 0) / 60;
+            userTotals[user.id].totalPaceDecimal += decimalPace;
+          }
+          userTotals[user.id].sessionCount += 1;
         });
+        
         const sorted = Object.values(userTotals)
-          .sort((a, b) => b.totalKm - a.totalKm)
-          .map((u, index) => ({ rank: index + 1, name: u.name, kelas: u.kelas, totalKm: parseFloat(u.totalKm.toFixed(2)) }))
-          .slice(0, 10);
-        setLeaderboard(sorted);
+          .map(u => {
+            const avgDecimal = u.sessionCount > 0 ? u.totalPaceDecimal / u.sessionCount : 0;
+            return {
+              name: u.name,
+              kelas: u.kelas,
+              totalKm: parseFloat(u.totalKm.toFixed(2)),
+              avgPaceDecimal: avgDecimal
+            };
+          })
+          .sort((a, b) => {
+            if (b.totalKm !== a.totalKm) return b.totalKm - a.totalKm;
+            return a.avgPaceDecimal - b.avgPaceDecimal;
+          })
+          .map((u, index) => ({ rank: index + 1, name: u.name, kelas: u.kelas, totalKm: u.totalKm }))
+          .slice(0, 100);
+          
+        setLeaderboard(sorted as any);
       }
 
       // 3. Fetch Settings
@@ -399,7 +421,7 @@ export default function AdminDashboard() {
         {/* KOLOM KANAN - LEADERBOARD */}
         <div className="space-y-6">
           <h2 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-wide mb-2">
-            <Trophy size={28} className="text-yellow-500" /> Top 10 Global
+            <Trophy size={28} className="text-yellow-500" /> Top 100 Global
           </h2>
           
           <div className="bg-zinc-900 p-6 rounded-3xl border border-zinc-800 space-y-4 shadow-2xl relative overflow-hidden">

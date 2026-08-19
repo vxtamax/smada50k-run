@@ -17,7 +17,6 @@ export default function Register() {
   // Form State
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [identifier, setIdentifier] = useState('');
   const [kategori, setKategori] = useState('Siswa');
   const [classGroup, setClassGroup] = useState('');
   const [password, setPassword] = useState('');
@@ -70,16 +69,16 @@ export default function Register() {
       const { data: existingUser } = await supabase
         .from('users')
         .select('id')
-        .eq('identifier', identifier)
+        .eq('email', email)
         .single();
 
       if (existingUser) {
-        toast.error("NISN / NIP tersebut sudah terdaftar! Silakan login.");
+        toast.error("Email tersebut sudah terdaftar! Silakan login.");
         setIsLoading(false);
         return;
       }
 
-      const finalClassGroup = kategori === 'Guru' ? 'Guru' : classGroup;
+      const finalClassGroup = kategori === 'Siswa' ? classGroup : kategori;
       
       // Enkripsi password sebelum dikirim ke database
       const hashedPassword = await hashPassword(password);
@@ -89,7 +88,7 @@ export default function Register() {
         .insert({
           name: name,
           email: email,
-          identifier: identifier,
+          identifier: email,
           class_group: finalClassGroup,
           password: hashedPassword,
           role: 'user'
@@ -159,18 +158,6 @@ export default function Register() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">NISN (Siswa) / NIP (Guru)</label>
-            <input 
-              type="text" 
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="Masukkan identitas resmi..." 
-              className="w-full px-4 py-3.5 bg-zinc-950 rounded-xl border border-zinc-800 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none font-medium text-sm"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
             <label className="text-xs font-black text-zinc-400 uppercase tracking-wider">Kategori Peserta</label>
             <select 
               value={kategori}
@@ -179,6 +166,7 @@ export default function Register() {
             >
               <option value="Siswa">Siswa SMADA</option>
               <option value="Guru">Guru / Staf SMADA</option>
+              <option value="Umum">Umum</option>
             </select>
           </div>
 
