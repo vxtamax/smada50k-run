@@ -21,30 +21,52 @@ export default function Leaderboard() {
       try {
         const { data: approvedData } = await supabase
           .from('submissions')
-          .select(`distance_km, users ( id, name, class_group )`)
+          .select(`distance_km, pace_minutes, users ( id, name, class_group )`)
           .eq('status', 'approved');
 
         if (approvedData) {
-          const userTotals: Record<string, {name: string, kelas: string, totalKm: number}> = {};
+          const userTotals: Record<string, {name: string, kelas: string, totalKm: number, totalPaceDecimal: number, sessionCount: number}> = {};
           
           approvedData.forEach(sub => {
             const user = sub.users as any;
             if (!user) return;
             if (!userTotals[user.id]) {
-              userTotals[user.id] = { name: user.name, kelas: user.class_group, totalKm: 0 };
+              userTotals[user.id] = { name: user.name, kelas: user.class_group, totalKm: 0, totalPaceDecimal: 0, sessionCount: 0 };
             }
             userTotals[user.id].totalKm += sub.distance_km;
+            
+            if (sub.pace_minutes) {
+              const [mins, secs] = sub.pace_minutes.split(':').map(Number);
+              const decimalPace = mins + (secs || 0) / 60;
+              userTotals[user.id].totalPaceDecimal += decimalPace;
+            }
+            userTotals[user.id].sessionCount += 1;
           });
 
           const sorted = Object.values(userTotals)
-            .sort((a, b) => b.totalKm - a.totalKm)
+            .map(u => {
+              const avgDecimal = u.sessionCount > 0 ? u.totalPaceDecimal / u.sessionCount : 0;
+              const avgMins = Math.floor(avgDecimal);
+              const avgSecs = Math.round((avgDecimal - avgMins) * 60);
+              const avgPace = `${avgMins.toString().padStart(2, '0')}:${avgSecs.toString().padStart(2, '0')}`;
+              
+              return {
+                name: u.name,
+                kelas: u.kelas,
+                totalKm: parseFloat(u.totalKm.toFixed(2)),
+                avgPaceDecimal: avgDecimal,
+                avgPaceStr: avgPace
+              };
+            })
+            .sort((a, b) => {
+              if (b.totalKm !== a.totalKm) return b.totalKm - a.totalKm;
+              return a.avgPaceDecimal - b.avgPaceDecimal;
+            })
             .map((u, index) => ({
               rank: index + 1,
-              name: u.name,
-              kelas: u.kelas,
-              totalKm: parseFloat(u.totalKm.toFixed(2))
+              ...u
             }))
-            .slice(0, 50); // Menampilkan Top 50
+            .slice(0, 10); // Menampilkan Top 10
 
           setLeaderboard(sorted);
         }
@@ -69,7 +91,7 @@ export default function Leaderboard() {
          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">
            KLASEMEN <span className="text-orange-500">SMADA50K</span>
          </h1>
-         <p className="text-zinc-500 font-bold uppercase tracking-widest mt-2 text-sm">Top 50 Pelari Terjauh</p>
+         <p className="text-zinc-500 font-bold uppercase tracking-widest mt-2 text-sm">Top 10 Pelari Terbaik</p>
       </div>
 
       <div className="bg-zinc-900/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-zinc-800 shadow-2xl relative overflow-hidden">
@@ -93,8 +115,15 @@ export default function Leaderboard() {
                   <div className="font-black text-white text-lg truncate">{user.name}</div>
                   <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{user.kelas}</div>
                 </div>
-                <div className="font-black text-orange-500 text-3xl text-right shrink-0">
-                  {user.totalKm} <span className="text-xs text-zinc-500 block -mt-1 uppercase tracking-widest">KM</span>
+                <div className="flex flex-col items-end shrink-0">
+                  <div className="font-black text-orange-500 text-2xl md:text-3xl">
+                    {user.totalKm} <span className="text-xs text-zinc-500 uppercase tracking-widest">KM</span>
+                  </div>
+                  {user.avgPaceStr && (
+                    <div className="text-[10px] md:text-xs font-bold text-zinc-400 mt-1 uppercase tracking-wider bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
+                      Pace Avg {user.avgPaceStr}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
