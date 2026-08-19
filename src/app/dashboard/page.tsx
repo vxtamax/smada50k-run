@@ -339,10 +339,22 @@ export default function Dashboard() {
                         {sub.status === 'rejected' && <span className="text-xs bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-1 rounded-md font-bold uppercase tracking-wider">Ditolak</span>}
                       </td>
                       <td className="py-4 text-right flex justify-end gap-2">
-                        <a href={sub.proof_link || sub.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-xs md:text-xs font-bold text-zinc-400 hover:text-white border border-zinc-700 hover:border-orange-500 hover:bg-zinc-800 px-3 py-1.5 rounded-lg transition-all shadow-sm">
+                        {sub.status === 'pending' && (
+                          <button 
+                            onClick={() => {
+                              localStorage.setItem('edit_submission', JSON.stringify(sub));
+                              window.location.href = '/submit';
+                            }} 
+                            className="text-xs md:text-xs font-bold text-blue-500 hover:text-white border border-blue-500/30 hover:border-blue-500 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                            Edit
+                          </button>
+                        )}
+                        <a href={sub.proof_link || sub.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-xs md:text-xs font-bold text-zinc-400 hover:text-white border border-zinc-700 hover:border-orange-500 hover:bg-zinc-800 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center">
                           Bukti
                         </a>
-                        <button onClick={() => handleDelete(sub.id)} className="text-xs md:text-xs font-bold text-red-500 hover:text-white border border-red-500/30 hover:border-red-500 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-all shadow-sm">
+                        <button onClick={() => handleDelete(sub.id)} className="text-xs md:text-xs font-bold text-red-500 hover:text-white border border-red-500/30 hover:border-red-500 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center">
                           Hapus
                         </button>
                       </td>

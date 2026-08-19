@@ -63,6 +63,37 @@ export default function SubmitRun() {
   const [pace, setPace] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const editDataStr = localStorage.getItem('edit_submission');
+    if (editDataStr) {
+      try {
+        const editData = JSON.parse(editDataStr);
+        setEditId(editData.id);
+        setDistance(editData.distance_km.toString());
+        setTanggal(editData.activity_date || new Date().toISOString().split('T')[0]);
+        setJenis(editData.activity_type || 'Lari');
+        setLink(editData.proof_link || editData.screenshot_url);
+        setSumber(editData.tracking_source || 'Strava');
+        
+        if (editData.duration) {
+          const parts = editData.duration.split(':');
+          if (parts.length === 3) {
+            setJam(parts[0]);
+            setMenit(parts[1]);
+            setDetik(parts[2]);
+          } else if (parts.length === 2) {
+            setMenit(parts[0]);
+            setDetik(parts[1]);
+          }
+        }
+        localStorage.removeItem('edit_submission');
+      } catch (e) {
+        console.error("Gagal load edit data", e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (jam || menit || detik) {
@@ -76,7 +107,7 @@ export default function SubmitRun() {
   }, [jam, menit, detik]);
 
   useEffect(() => {
-    if (distance && durasi) {
+    if (distance && durasi && durasi !== '00:00:00') {
       const parts = durasi.split(':');
       if (parts.length === 3 || parts.length === 2) {
          let h = 0, m = 0, s = 0;
@@ -123,28 +154,42 @@ export default function SubmitRun() {
     setIsSubmitting(true);
     
     try {
-      const { error: dbError } = await supabase
-        .from('submissions')
-        .insert({
-          user_id: userId,
-          distance_km: parseFloat(distance),
-          pace_minutes: pace,
-          activity_date: tanggal,
-          activity_type: jenis,
-          duration: durasi,
-          tracking_source: sumber,
-          proof_link: link,
-          screenshot_url: link 
-        });
+      const payload = {
+        distance_km: parseFloat(distance),
+        pace_minutes: pace,
+        activity_date: tanggal,
+        activity_type: jenis,
+        duration: durasi,
+        tracking_source: sumber,
+        proof_link: link,
+        screenshot_url: link
+      };
 
-      if (dbError) throw dbError;
+      if (editId) {
+        const { error: dbError } = await supabase
+          .from('submissions')
+          .update(payload)
+          .eq('id', editId);
+        
+        if (dbError) throw dbError;
+        toast.success("Horee! Laporan berhasil diperbarui!");
+      } else {
+        const { error: dbError } = await supabase
+          .from('submissions')
+          .insert({
+            ...payload,
+            user_id: userId
+          });
+          
+        if (dbError) throw dbError;
+        toast.success("Horee! Laporan berhasil dikirim ke Admin!");
+      }
 
-      toast.success("Horee! Laporan berhasil dikirim ke Admin!");
       router.push('/dashboard');
       
     } catch (error: any) {
       console.error("Submit error:", error);
-      toast.error(`Gagal mengirim data. (Pastikan tabel Supabase sudah di-update)`);
+      toast.error(`Gagal mengirim data. Pastikan format sudah benar.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -313,6 +358,8 @@ export default function SubmitRun() {
                >
                   {isSubmitting ? (
                     <><Loader2 size={18} className="animate-spin" /> MENGIRIM...</>
+                  ) : editId ? (
+                    'PERBARUI DATA LARI'
                   ) : (
                     'KIRIM DATA LARI'
                   )}
