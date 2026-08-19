@@ -48,8 +48,7 @@ export default function Home() {
         </div>
 
         <p className="text-lg md:text-xl text-zinc-400 leading-relaxed max-w-2xl mx-auto font-medium">
-          Selesaikan tantangan jarak <span className="text-white font-bold">50 Kilometer</span> dengan berlari ataupun berjalan kaki.
-          Bebas di mana saja, kapan saja! Kumpulkan jarakmu dan pantau progresnya.
+          Tantang dirimu menempuh jarak <span className="text-white font-bold">50 Kilometer!</span> Bebas mau lari atau jalan kaki, kapan pun dan di mana pun. Yuk, cicil jaraknya dari sekarang dan pantau terus progresmu sampai garis finish!
         </p>
         
         <div className="flex flex-col sm:flex-row gap-5 justify-center pt-8">
