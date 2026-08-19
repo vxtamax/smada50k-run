@@ -42,7 +42,7 @@ export default function RootLayout({
         {/* GLOBAL COPYRIGHT FOOTER */}
         <footer className="w-full text-center py-6 border-t border-zinc-900 bg-zinc-950 relative z-20 mt-auto">
           <p className="text-[10px] md:text-xs font-black text-zinc-600 tracking-[0.2em] uppercase">
-            Copyright vxtamax - aditama
+            © 2026 Vxtamax. All rights reserved.
           </p>
         </footer>
 
