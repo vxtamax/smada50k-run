@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { jsPDF } from 'jspdf';
 
 export default function Dashboard() {
   const targetKm = 50;
@@ -153,79 +154,70 @@ export default function Dashboard() {
       canvas.width = img.width;
       canvas.height = img.height;
       
+      // Pastikan font Montserrat ter-load sebelum di-draw
+      await document.fonts.ready;
+
       // 3. Draw Background
       ctx.drawImage(img, 0, 0);
 
       // ==========================================
-      // PENGATURAN TEKS SERTIFIKAT
+      // PENGATURAN TEKS SERTIFIKAT (REVISI PRESISI)
       // ==========================================
       
-      // === 1. NAMA PESERTA (Otomatis mengecil jika terlalu panjang) ===
+      // === 1. NAMA PESERTA ===
+      // Posisi di ruang kosong besar di atas garis menyala
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = '#000000';
       
-      let nameFontSize = 85; // Ukuran default yang besar
-      const maxNameWidth = canvas.width * 0.8; // Maksimal lebar nama 80% dari gambar
+      let nameFontSize = 95; 
+      const maxNameWidth = canvas.width * 0.85; 
       let nameText = userName.toUpperCase();
 
-      // Looping untuk mengecilkan font sampai muat
-      ctx.font = `bold ${nameFontSize}px "Arial", sans-serif`;
+      ctx.font = `900 ${nameFontSize}px "Montserrat", sans-serif`;
       while (ctx.measureText(nameText).width > maxNameWidth && nameFontSize > 30) {
         nameFontSize -= 2;
-        ctx.font = `bold ${nameFontSize}px "Arial", sans-serif`;
+        ctx.font = `900 ${nameFontSize}px "Montserrat", sans-serif`;
       }
-      ctx.fillText(nameText, canvas.width / 2, canvas.height * 0.58); // Koordinat Y Nama
+      ctx.fillText(nameText, canvas.width / 2, canvas.height * 0.39);
       
-      // === 2. TEKS PENGANTAR (Opsional, hapus bagian ini jika sudah ada di background) ===
-      ctx.font = 'normal 35px "Arial", sans-serif';
-      ctx.fillStyle = '#E5E7EB'; // Putih agak abu
-      ctx.fillText("For joining and successfully finished SMADA50K", canvas.width / 2, canvas.height * 0.63);
-      ctx.fillText("VIRTUAL RUN with official result as follow:", canvas.width / 2, canvas.height * 0.65);
+      // === 2. KATEGORI (Hanya mengisi kotak putih) ===
+      ctx.font = '900 40px "Montserrat", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#000000'; // Tinta hitam untuk di atas kotak putih
+      // X = 0.625 (tengah kotak putih), Y = 0.443 (sejajar teks Kategori)
+      ctx.fillText(userClass.toUpperCase(), canvas.width * 0.635, canvas.height * 0.457);
 
-      // === 3. KATEGORI (Warna hitam sesuai permintaan) ===
-      // Misal kita letakkan di tengah atas atau di atas tabel data
-      const catY = canvas.height * 0.48; // Koordinat Y Kategori
-      ctx.font = 'bold 45px "Arial", sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#FFFFFF'; // Tulisan labelnya putih
-      ctx.fillText("KATEGORI : ", canvas.width / 2, catY);
-      
+      // === 3. DATA STATISTIK (Hanya mengisi Value-nya saja) ===
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#000000'; // VALUE-nya hitam!
-      ctx.fillText(userClass.toUpperCase(), canvas.width / 2, catY);
-
-      // === 4. DATA STATISTIK (Warna Putih Semua) ===
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 45px "Arial", sans-serif'; // Ukuran proporsional
+      ctx.font = 'bold 40px "Montserrat", sans-serif'; 
+      ctx.fillStyle = '#000000'; // Warna Putih
       
-      const startX = canvas.width * 0.35; // Posisi X Label (Kiri)
-      const valX = canvas.width * 0.52;   // Posisi X Value (Kanan setelah titik dua)
-      const startY = canvas.height * 0.73; // Posisi Y Baris pertama
-      const lineHeight = 75; // Jarak antar baris
+      const valX = canvas.width * 0.58;    // Posisi X persis di sebelah kanan titik dua (:)
+      const startY = canvas.height * 0.615; // Posisi Y baris pertama (Total Distance)
+      const lineHeight = canvas.height * 0.0363; // Jarak antar baris ke bawah
 
-      // Baris 1: Total KM
-      ctx.fillStyle = '#FFFFFF'; // Warna Label Putih
-      ctx.fillText(`Total KM`, startX, startY);
-      ctx.fillText(`:  ${currentKm} km`, valX, startY); // Warna Value Putih
+      // Baris 1: Total Distance
+      ctx.fillText(`${currentKm} km`, valX, startY);
 
       // Baris 2: Total Time
-      ctx.fillText(`Total Time`, startX, startY + lineHeight);
-      ctx.fillText(`:  ${totalTimeStr}`, valX, startY + lineHeight);
+      ctx.fillText(`${totalTimeStr}`, valX, startY + lineHeight);
 
       // Baris 3: Average Pace
-      ctx.fillText(`Average Pace`, startX, startY + (lineHeight * 2));
-      ctx.fillText(`:  ${avgPace} /km`, valX, startY + (lineHeight * 2));
+      ctx.fillText(`${avgPace} /km`, valX, startY + (lineHeight * 2));
 
       // Baris 4: Overall Rank
-      ctx.fillText(`Overall Rank`, startX, startY + (lineHeight * 3));
-      ctx.fillText(`:  ${myRank} / ${totalPelari}`, valX, startY + (lineHeight * 3));
+      ctx.fillText(`${myRank} / ${totalPelari}`, valX, startY + (lineHeight * 3));
 
-      // 5. Download Trigger
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      const link = document.createElement('a');
-      link.download = `E-Certificate-SMADA50K-${userName.replace(/\s+/g, '-')}.jpg`;
-      link.href = dataUrl;
-      link.click();
+      // 5. Download Trigger as PDF
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95); // High quality JPEG
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [canvas.width, canvas.height]
+      });
+      
+      pdf.addImage(dataUrl, 'JPEG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`E-Certificate-SMADA50K-${userName.replace(/\s+/g, '-')}.pdf`);
 
       toast.success('Sertifikat berhasil diunduh!', { id: toastId });
     } catch (err) {
