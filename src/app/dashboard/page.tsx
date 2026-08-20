@@ -1,7 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Trophy, Flame, Footprints, Timer, PlusCircle, Loader2, LogOut, Check, MapPin, Flag, CheckCircle, BookOpen } from 'lucide-react';
+import { Trophy, Flame, Footprints, Timer, PlusCircle, Loader2, LogOut, Check, MapPin, Flag, CheckCircle, BookOpen, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -18,6 +18,7 @@ export default function Dashboard() {
   const [userName, setUserName] = useState("Pelari");
   const [userClass, setUserClass] = useState("Umum");
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [runEndDate, setRunEndDate] = useState<Date | null>(null);
 
   // Checkpoints definition
   const checkpoints = [10, 20, 30, 40, 50];
@@ -35,6 +36,11 @@ export default function Dashboard() {
     if (name) setUserName(name);
     if (kelas) setUserClass(kelas);
     
+    const { data: settingsData } = await supabase.from('event_settings').select('run_end').eq('id', 1).single();
+    if (settingsData && settingsData.run_end) {
+      setRunEndDate(new Date(settingsData.run_end));
+    }
+
     const { data, error } = await supabase
       .from('submissions')
       .select('*')
@@ -87,6 +93,146 @@ export default function Dashboard() {
       fetchProgress();
     } catch (error) {
       toast.error('Gagal menghapus data.', { id: toastId });
+    }
+  };
+
+  const [isGeneratingCert, setIsGeneratingCert] = useState(false);
+
+  const handleDownloadCertificate = async () => {
+    setIsGeneratingCert(true);
+    const toastId = toast.loading('Menyiapkan E-Certificate...');
+    
+    try {
+      // 1. Dapatkan Rank Keseluruhan
+      const { data: approvedData } = await supabase.from('submissions').select(`distance_km, users ( id )`).eq('status', 'approved');
+      let myRank = 0;
+      let totalPelari = 0;
+      if (approvedData) {
+        const userTotals: Record<string, number> = {};
+        approvedData.forEach(sub => {
+          const user = sub.users as any;
+          if (!user) return;
+          if (!userTotals[user.id]) userTotals[user.id] = 0;
+          userTotals[user.id] += sub.distance_km;
+        });
+        const sorted = Object.entries(userTotals).sort((a, b) => b[1] - a[1]);
+        totalPelari = sorted.length;
+        const rankIndex = sorted.findIndex(u => u[0] === localStorage.getItem('smada_user_id'));
+        myRank = rankIndex >= 0 ? rankIndex + 1 : 0;
+      }
+
+      // Hitung Total Waktu (Dari string HH:MM:SS di state submissions)
+      let totalSeconds = 0;
+      submissions.filter(s => s.status !== 'rejected').forEach(s => {
+         if (s.duration) {
+            const parts = s.duration.split(':');
+            if (parts.length === 3) {
+               totalSeconds += (parseInt(parts[0]) * 3600) + (parseInt(parts[1]) * 60) + parseInt(parts[2]);
+            }
+         }
+      });
+      const tHours = Math.floor(totalSeconds / 3600);
+      const tMins = Math.floor((totalSeconds % 3600) / 60);
+      const tSecs = totalSeconds % 60;
+      const totalTimeStr = `${tHours.toString().padStart(2, '0')}:${tMins.toString().padStart(2, '0')}:${tSecs.toString().padStart(2, '0')}`;
+
+      // 2. Load Gambar Template
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+      
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = '/sertifikat-kosong.jpg'; 
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // 3. Draw Background
+      ctx.drawImage(img, 0, 0);
+
+      // ==========================================
+      // PENGATURAN TEKS SERTIFIKAT
+      // ==========================================
+      
+      // === 1. NAMA PESERTA (Otomatis mengecil jika terlalu panjang) ===
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      
+      let nameFontSize = 85; // Ukuran default yang besar
+      const maxNameWidth = canvas.width * 0.8; // Maksimal lebar nama 80% dari gambar
+      let nameText = userName.toUpperCase();
+
+      // Looping untuk mengecilkan font sampai muat
+      ctx.font = `bold ${nameFontSize}px "Arial", sans-serif`;
+      while (ctx.measureText(nameText).width > maxNameWidth && nameFontSize > 30) {
+        nameFontSize -= 2;
+        ctx.font = `bold ${nameFontSize}px "Arial", sans-serif`;
+      }
+      ctx.fillText(nameText, canvas.width / 2, canvas.height * 0.58); // Koordinat Y Nama
+      
+      // === 2. TEKS PENGANTAR (Opsional, hapus bagian ini jika sudah ada di background) ===
+      ctx.font = 'normal 35px "Arial", sans-serif';
+      ctx.fillStyle = '#E5E7EB'; // Putih agak abu
+      ctx.fillText("For joining and successfully finished SMADA50K", canvas.width / 2, canvas.height * 0.63);
+      ctx.fillText("VIRTUAL RUN with official result as follow:", canvas.width / 2, canvas.height * 0.65);
+
+      // === 3. KATEGORI (Warna hitam sesuai permintaan) ===
+      // Misal kita letakkan di tengah atas atau di atas tabel data
+      const catY = canvas.height * 0.48; // Koordinat Y Kategori
+      ctx.font = 'bold 45px "Arial", sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#FFFFFF'; // Tulisan labelnya putih
+      ctx.fillText("KATEGORI : ", canvas.width / 2, catY);
+      
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#000000'; // VALUE-nya hitam!
+      ctx.fillText(userClass.toUpperCase(), canvas.width / 2, catY);
+
+      // === 4. DATA STATISTIK (Warna Putih Semua) ===
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 45px "Arial", sans-serif'; // Ukuran proporsional
+      
+      const startX = canvas.width * 0.35; // Posisi X Label (Kiri)
+      const valX = canvas.width * 0.52;   // Posisi X Value (Kanan setelah titik dua)
+      const startY = canvas.height * 0.73; // Posisi Y Baris pertama
+      const lineHeight = 75; // Jarak antar baris
+
+      // Baris 1: Total KM
+      ctx.fillStyle = '#FFFFFF'; // Warna Label Putih
+      ctx.fillText(`Total KM`, startX, startY);
+      ctx.fillText(`:  ${currentKm} km`, valX, startY); // Warna Value Putih
+
+      // Baris 2: Total Time
+      ctx.fillText(`Total Time`, startX, startY + lineHeight);
+      ctx.fillText(`:  ${totalTimeStr}`, valX, startY + lineHeight);
+
+      // Baris 3: Average Pace
+      ctx.fillText(`Average Pace`, startX, startY + (lineHeight * 2));
+      ctx.fillText(`:  ${avgPace} /km`, valX, startY + (lineHeight * 2));
+
+      // Baris 4: Overall Rank
+      ctx.fillText(`Overall Rank`, startX, startY + (lineHeight * 3));
+      ctx.fillText(`:  ${myRank} / ${totalPelari}`, valX, startY + (lineHeight * 3));
+
+      // 5. Download Trigger
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      const link = document.createElement('a');
+      link.download = `E-Certificate-SMADA50K-${userName.replace(/\s+/g, '-')}.jpg`;
+      link.href = dataUrl;
+      link.click();
+
+      toast.success('Sertifikat berhasil diunduh!', { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal membuat sertifikat.', { id: toastId });
+    } finally {
+      setIsGeneratingCert(false);
     }
   };
 
@@ -226,6 +372,40 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="h-12"></div> {/* Spacer for absolute text */}
+
+              {/* DOWNLOAD CERTIFICATE SECTION */}
+              {isFinished && (
+                <div className="mt-8 pt-8 border-t border-zinc-800">
+                  <div className="bg-gradient-to-r from-orange-500/20 to-yellow-500/20 border border-orange-500/30 p-6 rounded-2xl text-center">
+                    <Trophy size={48} className="text-yellow-500 mx-auto mb-3 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
+                    <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-widest mb-1">LUAR BIASA! 50KM SELESAI!</h3>
+                    
+                    {runEndDate && new Date() < runEndDate ? (
+                      <>
+                        <p className="text-xs md:text-sm text-zinc-300 font-medium mb-6">
+                          Anda telah menuntaskan tantangan SMADA50K Virtual Run! E-Certificate resmi Anda sedang disiapkan dan akan bisa diunduh setelah periode event berakhir pada <strong>{runEndDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                        </p>
+                        <button disabled className="w-full sm:w-auto px-8 py-4 bg-zinc-800 text-zinc-500 font-black uppercase tracking-widest text-sm rounded-xl cursor-not-allowed mx-auto flex items-center justify-center gap-2">
+                          <Lock size={20} /> BELUM TERSEDIA
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs md:text-sm text-zinc-300 font-medium mb-6">
+                          Event telah berakhir! E-Certificate resmi Anda sudah bisa diunduh sekarang.
+                        </p>
+                        <button 
+                          onClick={handleDownloadCertificate}
+                          disabled={isGeneratingCert}
+                          className="w-full sm:w-auto px-8 py-4 bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-sm rounded-xl transition shadow-[0_0_20px_rgba(249,115,22,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 mx-auto"
+                        >
+                          {isGeneratingCert ? <><Loader2 size={20} className="animate-spin" /> MENGUNDUH...</> : <>DOWNLOAD E-CERTIFICATE</>}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* GRAFIK PACE */}
