@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export default function Leaderboard() {
+  const [allRunners, setAllRunners] = useState<any[]>([]);
+  const [filter, setFilter] = useState('Global');
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [backUrl, setBackUrl] = useState('/');
@@ -43,32 +45,22 @@ export default function Leaderboard() {
             userTotals[user.id].sessionCount += 1;
           });
 
-          const sorted = Object.values(userTotals)
-            .map(u => {
-              const avgDecimal = u.sessionCount > 0 ? u.totalPaceDecimal / u.sessionCount : 0;
-              const avgMins = Math.floor(avgDecimal);
-              const avgSecs = Math.round((avgDecimal - avgMins) * 60);
-              const avgPace = `${avgMins.toString().padStart(2, '0')}:${avgSecs.toString().padStart(2, '0')}`;
-              
-              return {
-                name: u.name,
-                kelas: u.kelas,
-                totalKm: parseFloat(u.totalKm.toFixed(2)),
-                avgPaceDecimal: avgDecimal,
-                avgPaceStr: avgPace
-              };
-            })
-            .sort((a, b) => {
-              if (b.totalKm !== a.totalKm) return b.totalKm - a.totalKm;
-              return a.avgPaceDecimal - b.avgPaceDecimal;
-            })
-            .map((u, index) => ({
-              rank: index + 1,
-              ...u
-            }))
-            .slice(0, 100); // Menampilkan Top 100
+          const rawRunners = Object.values(userTotals).map(u => {
+            const avgDecimal = u.sessionCount > 0 ? u.totalPaceDecimal / u.sessionCount : 0;
+            const avgMins = Math.floor(avgDecimal);
+            const avgSecs = Math.round((avgDecimal - avgMins) * 60);
+            const avgPace = `${avgMins.toString().padStart(2, '0')}:${avgSecs.toString().padStart(2, '0')}`;
+            
+            return {
+              name: u.name,
+              kelas: u.kelas,
+              totalKm: parseFloat(u.totalKm.toFixed(2)),
+              avgPaceDecimal: avgDecimal,
+              avgPaceStr: avgPace
+            };
+          });
 
-          setLeaderboard(sorted);
+          setAllRunners(rawRunners);
         }
       } catch (err) {
         console.error("Gagal memuat leaderboard");
@@ -80,18 +72,55 @@ export default function Leaderboard() {
     fetchLeaderboard();
   }, []);
 
+  useEffect(() => {
+    // Terapkan filter dan hitung peringkat setiap kali filter berubah
+    const filtered = allRunners.filter(u => {
+      if (filter === 'Global') return true;
+      if (filter === 'Guru') return u.kelas === 'Guru';
+      if (filter === 'Umum') return u.kelas === 'Umum';
+      if (filter === 'Siswa') return u.kelas !== 'Guru' && u.kelas !== 'Umum';
+      return true;
+    });
+
+    const sorted = filtered
+      .sort((a, b) => {
+        if (b.totalKm !== a.totalKm) return b.totalKm - a.totalKm;
+        return a.avgPaceDecimal - b.avgPaceDecimal;
+      })
+      .map((u, index) => ({
+        rank: index + 1,
+        ...u
+      }))
+      .slice(0, 100);
+
+    setLeaderboard(sorted);
+  }, [allRunners, filter]);
+
   return (
     <div className="flex-1 flex flex-col font-sans w-full py-10 px-4 max-w-4xl mx-auto">
       <Link href={backUrl} className="text-zinc-400 hover:text-orange-500 flex items-center gap-2 font-bold uppercase tracking-wider mb-8 w-fit transition-colors">
         <ArrowLeft size={20} /> Kembali
       </Link>
 
-      <div className="text-center mb-10">
+      <div className="text-center mb-8">
          <Trophy size={56} className="text-yellow-500 mx-auto mb-4 drop-shadow-[0_0_15px_rgba(234,179,8,0.4)]" />
          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">
            KLASEMEN <span className="text-orange-500">SMADA50K</span>
          </h1>
          <p className="text-zinc-500 font-bold uppercase tracking-widest mt-2 text-sm">Top 100 Pelari Terbaik</p>
+      </div>
+
+      {/* FILTER KATEGORI */}
+      <div className="flex justify-center gap-2 md:gap-4 mb-8 flex-wrap px-2">
+        {['Global', 'Siswa', 'Guru', 'Umum'].map(cat => (
+           <button 
+             key={cat}
+             onClick={() => setFilter(cat)}
+             className={`px-5 py-2.5 rounded-full font-black uppercase tracking-widest text-xs transition-all ${filter === cat ? 'bg-orange-500 text-white shadow-[0_0_15px_rgba(249,115,22,0.4)] scale-105' : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'}`}
+           >
+             {cat}
+           </button>
+        ))}
       </div>
 
       <div className="bg-zinc-900/80 backdrop-blur-xl p-6 md:p-8 rounded-3xl border border-zinc-800 shadow-2xl relative overflow-hidden">
