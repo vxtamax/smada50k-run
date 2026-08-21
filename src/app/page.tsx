@@ -26,13 +26,29 @@ export default function Home() {
     <div className="flex-1 flex flex-col items-center justify-center relative font-sans w-full py-12 md:py-20">
       
       {/* HEADER POJOK KANAN ATAS */}
-      <header className="absolute top-0 left-0 w-full p-6 flex justify-end gap-6 z-50">
-        <Link href="/leaderboard" className="flex items-center gap-2 text-xs md:text-sm font-bold text-zinc-400 hover:text-yellow-500 uppercase tracking-widest transition-colors">
-          <Trophy size={16} /> Klasemen
-        </Link>
-        <Link href="/panduan" className="flex items-center gap-2 text-xs md:text-sm font-bold text-zinc-400 hover:text-blue-500 uppercase tracking-widest transition-colors">
-          <BookOpen size={16} /> Panduan
-        </Link>
+      <header className="absolute top-0 left-0 w-full p-6 flex justify-between items-center gap-6 z-50">
+        <div className="flex items-center gap-4">
+          <a href="https://www.instagram.com/andredwad/" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-pink-500 transition-colors" title="Instagram">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+            </svg>
+          </a>
+          <a href="https://github.com/vxtamax" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white transition-colors" title="GitHub">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3-.3 6-1.5 6-8.3a5.9 5.9 0 0 0-1.9-4.3 5.8 5.8 0 0 0-.2-4.2s-1.4-.5-4.5 2.1a15.2 15.2 0 0 0-8 0C3.4 1.7 2 2.2 2 2.2a5.8 5.8 0 0 0-.2 4.2 5.9 5.9 0 0 0-1.9 4.3c0 6.8 3 8 6 8.3a4.8 4.8 0 0 0-1 3.2v4"></path>
+            </svg>
+          </a>
+        </div>
+        <div className="flex items-center gap-6">
+          <Link href="/leaderboard" className="flex items-center gap-2 text-xs md:text-sm font-bold text-zinc-400 hover:text-yellow-500 uppercase tracking-widest transition-colors">
+            <Trophy size={16} /> Klasemen
+          </Link>
+          <Link href="/panduan" className="flex items-center gap-2 text-xs md:text-sm font-bold text-zinc-400 hover:text-blue-500 uppercase tracking-widest transition-colors">
+            <BookOpen size={16} /> Panduan
+          </Link>
+        </div>
       </header>
 
       <div className="text-center space-y-6 max-w-3xl px-4 relative z-10 mx-auto">

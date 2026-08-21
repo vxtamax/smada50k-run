@@ -120,6 +120,12 @@ export default function AdminLogin() {
             {isLoading ? <><Loader2 size={20} className="animate-spin" /> VERIFIKASI...</> : <>MASUK PANEL ADMIN <ArrowRight size={20} /></>}
           </button>
         </form>
+
+        <div className="pt-6 text-center border-t border-zinc-800 relative z-10">
+          <Link href="/login" className="text-sm text-zinc-400 hover:text-white transition-colors font-medium">
+            Bukan Panitia? <span className="text-orange-500 font-bold">Login Peserta di sini</span>
+          </Link>
+        </div>
       </div>
     </div>
   );
