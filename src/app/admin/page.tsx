@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Check, X, Eye, Trophy, Clock, LogOut, Loader2, Flame, ExternalLink, Search, Settings, Mail, Copy, Lock, Users, Trash2 } from 'lucide-react';
+import { Check, X, Eye, Trophy, Clock, LogOut, Loader2, Flame, ExternalLink, Search, Settings, Mail, Copy, Lock, Users, Trash2, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isBulkApproving, setIsBulkApproving] = useState(false);
   
   // Settings State
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
@@ -30,11 +31,58 @@ export default function AdminDashboard() {
   // Email Blast State
   const [allEmails, setAllEmails] = useState<string[]>([]);
 
+  const getPaceStatus = (paceString: string) => {
+    if (!paceString) return { color: 'text-zinc-500', bg: 'bg-zinc-800', label: 'NORMAL' };
+    const parts = paceString.split(':');
+    if (parts.length < 2) return { color: 'text-zinc-500', bg: 'bg-zinc-800', label: 'NORMAL' };
+    const mins = parseInt(parts[0]);
+    if (mins < 3) return { color: 'text-red-500', bg: 'bg-red-500/10 border-red-500/30', label: 'TIDAK MASUK AKAL' };
+    if (mins < 5) return { color: 'text-yellow-500', bg: 'bg-yellow-500/10 border-yellow-500/30', label: 'SANGAT CEPAT' };
+    if (mins > 30) return { color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/30', label: 'TERLALU LAMBAT' };
+    return { color: 'text-green-500', bg: 'bg-green-500/10 border-green-500/30', label: 'WAJAR' };
+  };
+
   const formatForInput = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
     date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
     return date.toISOString().slice(0, 16);
+  };
+
+  const handleBulkApproveWajar = async () => {
+    const wajarSubmissions = pendingSubmissions.filter(sub => {
+      const paceStatus = getPaceStatus(sub.pace_minutes);
+      return paceStatus.label === 'WAJAR';
+    });
+
+    if (wajarSubmissions.length === 0) {
+      toast.error('Tidak ada laporan berstatus WAJAR (Hijau) saat ini.');
+      return;
+    }
+
+    if (!window.confirm(`Anda akan MENERIMA ${wajarSubmissions.length} laporan Wajar sekaligus. Anda yakin?`)) return;
+
+    setIsBulkApproving(true);
+    const toastId = toast.loading(`Memproses ${wajarSubmissions.length} data...`);
+
+    try {
+      const idsToApprove = wajarSubmissions.map(s => s.id);
+      
+      const { error } = await supabase
+        .from('submissions')
+        .update({ status: 'approved' })
+        .in('id', idsToApprove);
+
+      if (error) throw error;
+
+      toast.success(`${wajarSubmissions.length} laporan berhasil disetujui!`, { id: toastId });
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal melakukan aksi massal.', { id: toastId });
+    } finally {
+      setIsBulkApproving(false);
+    }
   };
 
   const fetchData = async () => {
@@ -254,20 +302,31 @@ export default function AdminDashboard() {
                 </span>
               </div>
 
-              {pendingSubmissions.length > 0 && (
-                <div className="relative mb-6">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search size={18} className="text-zinc-500" />
+                              {pendingSubmissions.length > 0 && (
+                  <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Search size={18} className="text-zinc-500" />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Cari nama atau kelas..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors shadow-inner font-medium text-sm"
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={handleBulkApproveWajar}
+                      disabled={isBulkApproving}
+                      className="bg-green-500 text-white font-black uppercase tracking-wider py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 hover:bg-green-600 transition shadow-[0_0_15px_rgba(34,197,94,0.3)] disabled:opacity-50 shrink-0"
+                    >
+                      {isBulkApproving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+                      Terima Massal (Wajar)
+                    </button>
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Cari nama atau kelas..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors shadow-inner font-medium text-sm"
-                  />
-                </div>
-              )}
+                )}
               
               <div className="space-y-4">
                 {pendingSubmissions
@@ -280,6 +339,7 @@ export default function AdminDashboard() {
                   const user = sub.users as any;
                   const dateObj = new Date(sub.created_at);
                   const timeStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ', ' + dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                    const paceStatus = getPaceStatus(sub.pace_minutes);
                   
                   return (
                     <div key={sub.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 hover:border-orange-500/50 transition-all flex flex-col sm:flex-row gap-5 items-start sm:items-center justify-between group shadow-xl">
@@ -293,10 +353,15 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-6 border-t border-zinc-800 sm:border-0 pt-4 sm:pt-0">
-                      <div className="flex flex-col gap-1 w-full sm:w-32 text-left sm:text-right">
-                        <span className="text-xl sm:text-2xl font-black text-white">{sub.distance_km} <span className="text-xs text-zinc-500 uppercase">KM</span></span>
-                        <span className="text-[10px] sm:text-xs font-bold text-orange-500 tracking-wider">{sub.duration || '—'} • {sub.pace_minutes}/km</span>
-                      </div>
+                                              <div className="flex flex-col gap-1 w-full sm:w-auto text-left sm:text-right items-start sm:items-end">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl sm:text-2xl font-black text-white">{sub.distance_km} <span className="text-xs text-zinc-500 uppercase">KM</span></span>
+                            <span className={`text-[9px] px-2 py-0.5 rounded border font-black uppercase tracking-widest ${paceStatus.color} ${paceStatus.bg}`}>
+                              {paceStatus.label}
+                            </span>
+                          </div>
+                          <span className="text-[10px] sm:text-xs font-bold text-zinc-400 tracking-wider">{sub.duration || '?'} � {sub.pace_minutes}/km</span>
+                        </div>
                         <div className="h-12 w-px bg-zinc-800 hidden sm:block"></div>
                         <div className="flex gap-2">
                           <a href={sub.proof_link || sub.screenshot_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-zinc-800 text-zinc-300 hover:text-white hover:bg-orange-500 border border-zinc-700 hover:border-orange-500 rounded-xl transition shadow-sm" title="Buka Bukti">

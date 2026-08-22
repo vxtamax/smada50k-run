@@ -75,6 +75,23 @@ export default function Home() {
             Panel Admin
           </Link>
         </div>
+
+        {/* PORTFOLIO BADGE */}
+        <div className="pt-16 pb-4">
+          <a 
+            href="https://portolio-vxtamax.vercel.app/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full text-xs font-bold text-zinc-400 hover:text-orange-500 hover:border-orange-500/50 transition-all group shadow-lg"
+          >
+            <span>Developed by</span>
+            <span className="text-white group-hover:text-orange-500 transition-colors">Vxtamax</span>
+            <span className="relative flex h-2 w-2 ml-1">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
+          </a>
+        </div>
       </div>
     </div>
   );

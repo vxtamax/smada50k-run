@@ -36,7 +36,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} h-full antialiased`}
     >
-      <body className="flex flex-col min-h-screen bg-zinc-950 text-white font-sans relative overflow-x-hidden">
+      <body suppressHydrationWarning className="flex flex-col min-h-screen bg-zinc-950 text-white font-sans relative overflow-x-hidden">
         <ClientIdleTimer />
         {/* SUBTLE GRID PATTERN WITH RADIAL GRADIENT MASK */}
         <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
@@ -52,8 +52,12 @@ export default function RootLayout({
         
         {/* GLOBAL COPYRIGHT FOOTER */}
         <footer className="w-full text-center py-6 border-t border-zinc-900 bg-zinc-950 relative z-20 mt-auto">
-          <p className="text-[10px] md:text-xs font-black text-zinc-600 tracking-[0.2em] uppercase">
-            © 2026 Vxtamax. All rights reserved.
+                    <p className="text-[10px] md:text-xs font-black text-zinc-600 tracking-[0.2em] uppercase flex items-center justify-center gap-1">
+            &copy; 2026 
+            <a href="https://portolio-vxtamax.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-orange-500 underline decoration-orange-500/30 underline-offset-4 transition-colors">
+              Vxtamax
+            </a>
+            . All rights reserved.
           </p>
         </footer>
 
