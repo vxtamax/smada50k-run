@@ -526,9 +526,11 @@ export default function Dashboard() {
                         <a href={sub.proof_link || sub.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-xs md:text-xs font-bold text-zinc-400 hover:text-white border border-zinc-700 hover:border-orange-500 hover:bg-zinc-800 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center">
                           Bukti
                         </a>
-                        <button onClick={() => handleDelete(sub.id)} className="text-xs md:text-xs font-bold text-red-500 hover:text-white border border-red-500/30 hover:border-red-500 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center">
-                          Hapus
-                        </button>
+                        {sub.status === 'pending' && (
+                            <button onClick={() => handleDelete(sub.id)} className="text-xs md:text-xs font-bold text-red-500 hover:text-white border border-red-500/30 hover:border-red-500 hover:bg-red-500 px-3 py-1.5 rounded-lg transition-all shadow-sm flex items-center">
+                              Hapus
+                            </button>
+                          )}
                       </td>
                     </tr>
                   )

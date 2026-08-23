@@ -104,13 +104,17 @@ export default function AdminDashboard() {
     }
 
     try {
-      // 1. Fetch Verifikasi
-      const { data: pendingData } = await supabase
+      // 1. Fetch Semua Data (Pending, Approved, Rejected) untuk Verifikasi, Riwayat & Deteksi Link
+      const { data: allData } = await supabase
         .from('submissions')
-        .select(`id, distance_km, pace_minutes, screenshot_url, proof_link, duration, created_at, users ( name, class_group )`)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
-      if (pendingData) setPendingSubmissions(pendingData);
+        .select(`id, distance_km, pace_minutes, screenshot_url, proof_link, duration, status, created_at, users ( name, class_group, email )`)
+        .order('created_at', { ascending: false });
+      
+      if (allData) {
+        setAllSubmissions(allData);
+        setPendingSubmissions(allData.filter((s: any) => s.status === 'pending').reverse()); // Reverse agar terlama di atas
+        setHistorySubmissions(allData.filter((s: any) => s.status === 'approved' || s.status === 'rejected'));
+      }
 
       // 2. Fetch Leaderboard
       const { data: approvedData } = await supabase.from('submissions').select(`distance_km, pace_minutes, users ( id, name, class_group )`).eq('status', 'approved');
@@ -306,19 +310,22 @@ export default function AdminDashboard() {
       {/* TABS */}
       <div className="max-w-7xl mx-auto px-4 mt-8">
         <div className="flex flex-wrap gap-2 md:gap-4 border-b border-zinc-800 pb-2">
-          <button onClick={() => setActiveTab('verifikasi')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'verifikasi' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
-            <Clock size={18} /> Verifikasi
-          </button>
-          <button onClick={() => setActiveTab('peserta')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'peserta' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
-            <Users size={18} /> Peserta
-          </button>
-          <button onClick={() => setActiveTab('pengaturan')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'pengaturan' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
-            <Settings size={18} /> Jadwal Event
-          </button>
-          <button onClick={() => setActiveTab('email')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'email' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
-            <Mail size={18} /> Email Blast
-          </button>
-        </div>
+            <button onClick={() => setActiveTab('verifikasi')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'verifikasi' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
+              <Clock size={18} /> Verifikasi
+            </button>
+            <button onClick={() => setActiveTab('peserta')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'peserta' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
+              <Users size={18} /> Peserta
+            </button>
+            <button onClick={() => setActiveTab('pengaturan')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'pengaturan' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
+              <Settings size={18} /> Jadwal Event
+            </button>
+            <button onClick={() => setActiveTab('riwayat')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'riwayat' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
+              <CheckCircle size={18} /> Riwayat
+            </button>
+            <button onClick={() => setActiveTab('email')} className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-bold uppercase tracking-wider text-xs md:text-sm transition-all ${activeTab === 'email' ? 'text-orange-500 border-b-2 border-orange-500 bg-orange-500/10' : 'text-zinc-500 hover:text-zinc-300'}`}>
+              <Mail size={18} /> Email Blast
+            </button>
+          </div>
       </div>
 
       <main className="max-w-7xl mx-auto mt-6 px-4 grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10 w-full">
@@ -376,6 +383,10 @@ export default function AdminDashboard() {
                   const dateObj = new Date(sub.created_at);
                   const timeStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ', ' + dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                     const paceStatus = getPaceStatus(sub.pace_minutes);
+                    const linkToSearch = sub.proof_link || sub.screenshot_url;
+                    const isDuplicate = linkToSearch ? allSubmissions.filter((s: any) => (s.proof_link === linkToSearch || s.screenshot_url === linkToSearch) && s.id !== sub.id).length > 0 : false;
+                    const linkToSearch = sub.proof_link || sub.screenshot_url;
+                    const isDuplicate = linkToSearch ? allSubmissions.filter((s: any) => (s.proof_link === linkToSearch || s.screenshot_url === linkToSearch) && s.id !== sub.id).length > 0 : false;
                   
                   return (
                     <div key={sub.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 hover:border-orange-500/50 transition-all flex flex-col sm:flex-row gap-5 items-start sm:items-center justify-between group shadow-xl">
@@ -403,6 +414,11 @@ export default function AdminDashboard() {
                           <a href={sub.proof_link || sub.screenshot_url} target="_blank" rel="noopener noreferrer" className="p-3 bg-zinc-800 text-zinc-300 hover:text-white hover:bg-orange-500 border border-zinc-700 hover:border-orange-500 rounded-xl transition shadow-sm" title="Buka Bukti">
                             <ExternalLink size={20} />
                           </a>
+                            {isDuplicate && (
+                              <span className="animate-pulse bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest absolute -top-4 -right-4 shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-400 z-10">
+                                🚨 DUPLIKAT
+                              </span>
+                            )}
                           <button onClick={() => handleUpdateStatus(sub.id, 'approved')} className="p-3 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white border border-green-500/30 rounded-xl transition shadow-sm" title="Terima Laporan">
                             <Check size={20} />
                           </button>
@@ -653,11 +669,26 @@ export default function AdminDashboard() {
                     Simpan Jadwal <Check size={18} />
                   </button>
                 </div>
-              </form>
-            </div>
-          )}
+                              </form>
 
-          {/* TAB: EMAIL BLAST */}
+                <div className="mt-12 pt-8 border-t border-zinc-800">
+                  <h2 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-wide mb-6">
+                    <CheckCircle size={24} className="text-green-500" /> Ekspor Data (Laporan Akhir)
+                  </h2>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button onClick={() => handleExportCSV('peserta')} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-4 rounded-xl border border-zinc-700 transition flex items-center justify-center gap-2">
+                      Unduh Klasemen & Peserta (.CSV)
+                    </button>
+                    <button onClick={() => handleExportCSV('laporan')} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-4 rounded-xl border border-zinc-700 transition flex items-center justify-center gap-2">
+                      Unduh Semua Riwayat Lari (.CSV)
+                    </button>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-3 font-medium">File CSV dapat dibuka langsung menggunakan Microsoft Excel.</p>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: EMAIL BLAST */}
           {activeTab === 'email' && (
             <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-xl">
               <h2 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-wide mb-6 border-b border-zinc-800 pb-4">
