@@ -385,8 +385,6 @@ export default function AdminDashboard() {
                     const paceStatus = getPaceStatus(sub.pace_minutes);
                     const linkToSearch = sub.proof_link || sub.screenshot_url;
                     const isDuplicate = linkToSearch ? allSubmissions.filter((s: any) => (s.proof_link === linkToSearch || s.screenshot_url === linkToSearch) && s.id !== sub.id).length > 0 : false;
-                    const linkToSearch = sub.proof_link || sub.screenshot_url;
-                    const isDuplicate = linkToSearch ? allSubmissions.filter((s: any) => (s.proof_link === linkToSearch || s.screenshot_url === linkToSearch) && s.id !== sub.id).length > 0 : false;
                   
                   return (
                     <div key={sub.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 hover:border-orange-500/50 transition-all flex flex-col sm:flex-row gap-5 items-start sm:items-center justify-between group shadow-xl">

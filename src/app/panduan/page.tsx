@@ -15,7 +15,7 @@ export default function RulesPage() {
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col font-sans w-full py-10 px-4 max-w-4xl mx-auto text-white">
+        <div className="flex-1 flex flex-col font-sans w-full py-10 px-4 max-w-4xl mx-auto text-white">
       <Link href={backUrl} className="text-zinc-400 hover:text-orange-500 flex items-center gap-2 font-bold uppercase tracking-wider mb-8 w-fit transition-colors">
         <ArrowLeft size={20} /> Kembali
       </Link>
@@ -36,15 +36,19 @@ export default function RulesPage() {
           <ul className="space-y-4 text-zinc-300 font-medium leading-relaxed">
             <li className="flex gap-3">
               <span className="text-orange-500 font-black">1.</span> 
-              <span>Tantangan ini bersifat akumulatif. Anda bebas menyicil jarak tempuh 50 KM dalam beberapa sesi lari/jalan kaki kapan saja selama periode acara berlangsung.</span>
+              <span>Tantangan ini bersifat akumulatif. Anda bebas menyicil jarak tempuh 50 KM dalam beberapa sesi lari atau jalan kaki kapan saja selama periode acara berlangsung.</span>
             </li>
             <li className="flex gap-3">
               <span className="text-orange-500 font-black">2.</span> 
-              <span>Aktivitas yang sah hanyalah <b>Berlari (Run)</b> dan <b>Berjalan Kaki (Walk)</b>. Aktivitas bersepeda, bermotor, atau naik kendaraan umum tidak akan dihitung dan akan ditolak oleh Panitia.</span>
+              <span>Aktivitas yang sah hanyalah <b>Berlari (Run)</b> dan <b>Berjalan Kaki (Walk)</b>. Aktivitas menggunakan sepeda, kendaraan bermotor, atau transportasi umum akan langsung ditolak oleh sistem.</span>
             </li>
             <li className="flex gap-3">
               <span className="text-orange-500 font-black">3.</span> 
-              <span>Jarak minimum per sesi yang dapat diinput adalah <b>1 KM</b>.</span>
+              <span>Jarak minimum per sesi yang dapat dilaporkan adalah <b>1 KM</b>.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-orange-500 font-black">4.</span> 
+              <span>Selesaikan misi 50 KM Anda dan bersiaplah untuk mengklaim <b>E-Certificate eksklusif</b> yang bisa diunduh langsung dari Dashboard segera setelah rangkaian acara resmi ditutup.</span>
             </li>
           </ul>
         </div>
@@ -56,15 +60,19 @@ export default function RulesPage() {
           <ul className="space-y-4 text-zinc-300 font-medium leading-relaxed">
             <li className="flex gap-3">
               <span className="text-orange-500 font-black">1.</span> 
-              <span>Peserta wajib merekam aktivitas menggunakan aplikasi GPS Tracking seperti <b>Strava, Garmin, Relive, Suunto, Coros</b>, atau aplikasi serupa lainnya.</span>
+              <span>Rekam setiap aktivitas Anda menggunakan aplikasi GPS Tracking andalan seperti <b>Strava, Garmin, Relive, Suunto, Coros</b>, atau aplikasi pelacak presisi lainnya.</span>
             </li>
             <li className="flex gap-3">
               <span className="text-orange-500 font-black">2.</span> 
-              <span>Saat melakukan pelaporan (Submit) di aplikasi ini, peserta <b>wajib menyertakan Link (URL) publik</b> dari aktivitas tersebut agar Panitia dapat memverifikasi keaslian rute, jarak, dan pace.</span>
+              <span>Saat melapor di web ini, Anda <b>wajib melampirkan Link Publik (URL)</b> dari aktivitas Anda. Pastikan pengaturan privasi di aplikasi Anda diatur ke mode <b>Publik (Everyone)</b>. Laporan dengan tautan yang terkunci (Private) akan otomatis ditolak karena tidak dapat diverifikasi oleh panitia.</span>
             </li>
             <li className="flex gap-3">
               <span className="text-orange-500 font-black">3.</span> 
-              <span>Pastikan pengaturan privasi (Privacy) di aplikasi pelacak Anda (misal: Strava) diatur menjadi <b>Publik (Everyone)</b> agar panitia dapat membuka link tersebut tanpa harus mengikuti (*follow*) akun Anda.</span>
+              <span>Tidak perlu panik jika Anda salah ketik atau salah memasukkan jarak. Selama laporan Anda masih bersatus <b>Pending</b>, Anda memiliki kendali penuh untuk <b>menghapus dan memperbaikinya</b> langsung dari menu Dashboard.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-orange-500 font-black">4.</span> 
+              <span>Sebagai langkah keamanan ekstra untuk melindungi data pelari, sistem kami akan secara otomatis mengeluarkan (logout) akun Anda jika tidak ada aktivitas di dalam web selama lebih dari 30 menit.</span>
             </li>
           </ul>
         </div>
@@ -74,10 +82,13 @@ export default function RulesPage() {
             <AlertTriangle size={24} /> Kebijakan Kejujuran (Fair Play)
           </h2>
           <p className="text-orange-200 font-medium leading-relaxed">
-            Acara ini mengedepankan semangat sportivitas dan kejujuran. Panitia SMADA50K memiliki wewenang penuh untuk <b>menolak (Reject)</b> laporan aktivitas yang terindikasi curang (misal: pace tidak masuk akal, grafik jantung/elevasi menunjukkan pola kendaraan bermotor, atau GPS error secara ekstrem).
+            Acara ini dibangun di atas semangat sportivitas dan kejujuran tanpa kompromi. Panitia SMADA50K memiliki wewenang penuh untuk menolak laporan yang terindikasi curang, seperti catatan waktu (pace) yang tidak masuk akal atau grafik pergerakan yang menyerupai kendaraan bermotor.
           </p>
-          <p className="text-orange-200 font-medium leading-relaxed mt-4 italic">
-            "Berlarilah untuk kesehatanmu sendiri, karena medali terbesar adalah kejujuran pada dirimu sendiri."
+          <p className="text-orange-200 font-medium leading-relaxed mt-4">
+            Selain itu, sistem keamanan kami telah dilengkapi dengan pelacak pintar yang akan mendeteksi penggunaan tautan (link) ganda. Penggunaan satu link Strava yang sama secara berulang akan langsung tertangkap oleh radar sistem.
+          </p>
+          <p className="text-orange-200 font-black leading-relaxed mt-6 italic">
+            "Berlarilah untuk kesehatan dan kebanggaan Anda sendiri. Medali dan sertifikat terbesar adalah kejujuran yang Anda pegang hingga garis akhir."
           </p>
         </div>
       </div>
