@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'verifikasi' | 'peserta' | 'pengaturan' | 'email'>('verifikasi');
+  const [activeTab, setActiveTab] = useState<'verifikasi' | 'peserta' | 'pengaturan' | 'email' | 'riwayat'>('verifikasi');
   
   // Data State
   const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([]);
@@ -17,7 +17,11 @@ export default function AdminDashboard() {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
   const [isBulkApproving, setIsBulkApproving] = useState(false);
+  const [historySubmissions, setHistorySubmissions] = useState<any[]>([]);
+  const [allSubmissions, setAllSubmissions] = useState<any[]>([]);
+
   
   // Settings State
   const [isEditingSchedule, setIsEditingSchedule] = useState(false);
@@ -180,16 +184,48 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const handleUpdateStatus = async (id: string, newStatus: 'approved' | 'rejected') => {
+  const handleUpdateStatus = async (id: string, newStatus: 'approved' | 'rejected' | 'pending') => {
     const loadingToast = toast.loading("Memproses...");
     try {
       const { error } = await supabase.from('submissions').update({ status: newStatus }).eq('id', id);
       if (error) throw error;
-      toast.success(`Data berhasil di-${newStatus === 'approved' ? 'terima' : 'tolak'}!`, { id: loadingToast });
+      toast.success(`Data berhasil di-${newStatus === 'approved' ? 'terima' : newStatus === 'rejected' ? 'tolak' : 'batalkan'}!`, { id: loadingToast });
       fetchData(); 
     } catch (err) {
       toast.error("Gagal memproses data.", { id: loadingToast });
     }
+  };
+
+
+  const handleExportCSV = (type: 'peserta' | 'laporan') => {
+    let csvContent = "data:text/csv;charset=utf-8,\n";
+    
+    if (type === 'peserta') {
+      csvContent += "Rank,Nama,Email,Kelas,Total Jarak (KM),Total Waktu,Rata-rata Pace\n";
+      usersList.forEach(u => {
+        const timeStr = `${Math.floor(u.totalDurationDecimal / 60)}j ${Math.floor(u.totalDurationDecimal % 60)}m`;
+        const avgPace = u.sessionCount > 0 ? (u.totalPaceDecimal / u.sessionCount).toFixed(2) : "0";
+        csvContent += `${u.rank},"${u.name}","${u.email}","${u.class_group}",${u.totalDistance},"${timeStr}",${avgPace}\n`;
+      });
+    } else {
+      csvContent += "ID,Nama Peserta,Kelas,Jarak (KM),Pace,Durasi,Status,Tanggal Lapor,Link Bukti\n";
+      allSubmissions.forEach(s => {
+        const userName = s.users?.name || '';
+        const userClass = s.users?.class_group || '';
+        const link = s.proof_link || s.screenshot_url || '';
+        const date = new Date(s.created_at).toLocaleString('id-ID');
+        csvContent += `${s.id},"${userName}","${userClass}",${s.distance_km},${s.pace_minutes},"${s.duration}",${s.status},"${date}","${link}"\n`;
+      });
+    }
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `smada50k_export_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`Berhasil mengunduh data ${type}!`);
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -401,7 +437,79 @@ export default function AdminDashboard() {
             </>
           )}
 
-          {/* TAB: PESERTA */}
+          
+            {/* TAB: RIWAYAT */}
+            {activeTab === 'riwayat' && (
+              <>
+                <div className="flex justify-between items-end mb-2">
+                  <h2 className="text-2xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+                    <CheckCircle size={28} className="text-orange-500" /> Riwayat Laporan
+                  </h2>
+                  <span className="text-xs bg-zinc-700 text-white font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
+                    {historySubmissions.length} Laporan
+                  </span>
+                </div>
+
+                <div className="relative mb-6">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Search size={18} className="text-zinc-500" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Cari nama atau kelas di riwayat..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors shadow-inner font-medium text-sm"
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  {historySubmissions
+                    .filter(sub => {
+                      const user = sub.users as any;
+                      const q = searchQuery.toLowerCase();
+                      return user?.name?.toLowerCase().includes(q) || user?.class_group?.toLowerCase().includes(q);
+                    })
+                    .map(sub => {
+                      const user = sub.users as any;
+                      const timeStr = new Date(sub.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                      
+                      return (
+                      <div key={sub.id} className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg hover:border-zinc-700 transition relative">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-xl shrink-0 ${sub.status === 'approved' ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'}`}>
+                            {user?.name?.charAt(0) || '?'}
+                          </div>
+                          <div>
+                            <div className="font-bold text-white text-lg leading-tight">{user?.name}</div>
+                            <div className="text-xs text-zinc-500 font-bold mt-1 uppercase tracking-wider">{user?.class_group} &bull; {timeStr}</div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 bg-zinc-950/50 p-4 rounded-xl border border-zinc-800/50">
+                          <div className="flex flex-col gap-1 w-full sm:w-auto text-left sm:text-right items-start sm:items-end">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl font-black text-white">{sub.distance_km} <span className="text-xs text-zinc-500 uppercase">KM</span></span>
+                            </div>
+                            <span className="text-[10px] sm:text-xs font-bold text-zinc-400 tracking-wider">{sub.status === 'approved' ? 'DITERIMA' : 'DITOLAK'}</span>
+                          </div>
+                          
+                          <div className="h-12 w-px bg-zinc-800 hidden sm:block"></div>
+                          
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <button onClick={() => handleUpdateStatus(sub.id, 'pending')} className="flex-1 sm:flex-none p-3 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700 rounded-xl transition shadow-sm text-xs font-bold flex items-center justify-center gap-2" title="Kembalikan ke Antrean">
+                              Batalkan / Undo
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* TAB: PESERTA */}
           {activeTab === 'peserta' && (
             <>
               <div className="flex justify-between items-end mb-2">

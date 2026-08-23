@@ -337,7 +337,7 @@ export default function SubmitRun() {
                   <div className="bg-orange-500/10 border border-orange-500/30 p-3 rounded-xl flex gap-3 items-start mb-4">
                     <Info size={16} className="text-orange-500 shrink-0 mt-0.5" />
                     <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-                      Pastikan link bersifat publik (bisa diakses admin). Contoh: <span className="text-white">https://strava.app.link/...</span>
+                      Pastikan aktivitas Strava Anda diatur ke <b>Everyone (Publik)</b> agar Admin bisa melakukan verifikasi. Laporan dengan link <i>Private</i> akan otomatis ditolak.
                     </p>
                   </div>
 
